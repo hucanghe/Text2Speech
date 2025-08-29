@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Speech</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .settings {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        select, input[type="range"] {
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        input[type="range"] {
+            width: 120px;
+        }
+        
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .status.speaking {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            color: white;
+            display: block;
+        }
+        
+        .quick-texts {
+            margin-top: 20px;
+        }
+        
+        .quick-texts h3 {
+            color: #555;
+            margin-bottom: 10px;
+        }
+        
+        .quick-text-btn {
+            margin: 5px;
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .quick-text-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔊 Text to Speech</h1>
+        
+        <textarea id="textInput" placeholder="Type or paste your text here..."></textarea>
+        
+        <div class="status" id="status">
+            🎵 Speaking text...
+        </div>
+        
+        <div class="controls">
+            <button class="btn-primary" onclick="speakText()">▶️ Speak</button>
+            <button class="btn-secondary" onclick="pauseResume()">⏸️ Pause</button>
+            <button class="btn-danger" onclick="stopSpeech()">⏹️ Stop</button>
+            <button class="btn-secondary" onclick="clearText()">🗑️ Clear</button>
+        </div>
+        
+        <div class="settings">
+            <div class="setting-group">
+                <label for="voiceSelect">Voice:</label>
+                <select id="voiceSelect"></select>
+            </div>
+            <div class="setting-group">
+                <label for="speedRange">Speed: <span id="speedValue">1.0</span></label>
+                <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1">
+            </div>
+            <div class="setting-group">
+                <label for="pitchRange">Pitch: <span id="pitchValue">1.0</span></label>
+                <input type="range" id="pitchRange" min="0.5" max="2" step="0.1" value="1">
+            </div>
+            <div class="setting-group">
+                <label for="volumeRange">Volume: <span id="volumeValue">1.0</span></label>
+                <input type="range" id="volumeRange" min="0" max="1" step="0.1" value="1">
+            </div>
+        </div>
+        
+        <div class="quick-texts">
+            <h3>Quick Texts:</h3>
+            <button class="quick-text-btn" onclick="insertQuickText('Hello, how are you doing today?')">Greeting</button>
+            <button class="quick-text-btn" onclick="insertQuickText('Thank you very much for your help!')">Thank You</button>
+            <button class="quick-text-btn" onclick="insertQuickText('This was a very interesting article about artificial intelligence and machine learning.')">Sample Text</button>
+            <button class="quick-text-btn" onclick="insertQuickText('One, two, three, four, five, six, seven, eight, nine, ten.')">Numbers</button>
+        </div>
+    </div>
+
+    <script>
+        let currentSpeech = null;
+        let isPaused = false;
+        let voices = [];
+
+        // Initialization
+        window.addEventListener('load', function() {
+            loadVoices();
+            updateSliderValues();
+        });
+
+        // Load voices
+        function loadVoices() {
+            voices = speechSynthesis.getVoices();
+            const voiceSelect = document.getElementById('voiceSelect');
+            voiceSelect.innerHTML = '';
+            
+            console.log('Available voices:', voices.length); // Debug info
+            
+            if (voices.length === 0) {
+                const option = document.createElement('option');
+                option.textContent = 'Loading voices...';
+                voiceSelect.appendChild(option);
+                return;
+            }
+            
+            // Categorize voices
+            const englishVoices = voices.filter(voice => voice.lang.includes('en'));
+            const germanVoices = voices.filter(voice => voice.lang.includes('de'));
+            const otherVoices = voices.filter(voice => !voice.lang.includes('en') && !voice.lang.includes('de'));
+            
+            // Add English voices first with flag
+            englishVoices.forEach((voice, originalIndex) => {
+                const option = document.createElement('option');
+                const actualIndex = voices.indexOf(voice);
+                option.value = actualIndex;
+                option.textContent = `${voice.name} (${voice.lang}) 🇺🇸`;
+                voiceSelect.appendChild(option);
+            });
+            
+            // Add German voices
+            germanVoices.forEach((voice, originalIndex) => {
+                const option = document.createElement('option');
+                const actualIndex = voices.indexOf(voice);
+                option.value = actualIndex;
+                option.textContent = `${voice.name} (${voice.lang}) 🇩🇪`;
+                voiceSelect.appendChild(option);
+            });
+            
+            // Add other voices
+            otherVoices.forEach((voice, originalIndex) => {
+                const option = document.createElement('option');
+                const actualIndex = voices.indexOf(voice);
+                option.value = actualIndex;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                voiceSelect.appendChild(option);
+            });
+            
+            console.log('Loaded voices - EN:', englishVoices.length, 'DE:', germanVoices.length, 'Others:', otherVoices.length);
+        }
+
+        // Reload voices if not available yet (multiple attempts)
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+        
+        // Additional voice loading attempts
+        setTimeout(loadVoices, 100);
+        setTimeout(loadVoices, 500);
+        setTimeout(loadVoices, 1000);
+
+        // Speak text
+        function speakText() {
+            const text = document.getElementById('textInput').value.trim();
+            
+            if (!text) {
+                alert('Please enter some text!');
+                return;
+            }
+
+            // Stop previous speech
+            if (currentSpeech) {
+                speechSynthesis.cancel();
+            }
+
+            currentSpeech = new SpeechSynthesisUtterance(text);
+            
+            // Apply settings
+            const voiceIndex = document.getElementById('voiceSelect').value;
+            if (voices[voiceIndex]) {
+                currentSpeech.voice = voices[voiceIndex];
+            }
+            
+            currentSpeech.rate = parseFloat(document.getElementById('speedRange').value);
+            currentSpeech.pitch = parseFloat(document.getElementById('pitchRange').value);
+            currentSpeech.volume = parseFloat(document.getElementById('volumeRange').value);
+
+            // Event handlers
+            currentSpeech.onstart = function() {
+                document.getElementById('status').style.display = 'block';
+                isPaused = false;
+                updateButtons();
+            };
+
+            currentSpeech.onend = function() {
+                document.getElementById('status').style.display = 'none';
+                currentSpeech = null;
+                isPaused = false;
+                updateButtons();
+            };
+
+            currentSpeech.onerror = function(event) {
+                console.error('Speech synthesis error:', event.error);
+                document.getElementById('status').style.display = 'none';
+                alert('Speech synthesis error: ' + event.error);
+            };
+
+            speechSynthesis.speak(currentSpeech);
+        }
+
+        // Pause/Resume
+        function pauseResume() {
+            if (!currentSpeech) return;
+
+            if (isPaused) {
+                speechSynthesis.resume();
+                isPaused = false;
+            } else {
+                speechSynthesis.pause();
+                isPaused = true;
+            }
+            updateButtons();
+        }
+
+        // Stop
+        function stopSpeech() {
+            if (currentSpeech) {
+                speechSynthesis.cancel();
+                currentSpeech = null;
+                isPaused = false;
+                document.getElementById('status').style.display = 'none';
+                updateButtons();
+            }
+        }
+
+        // Clear text
+        function clearText() {
+            document.getElementById('textInput').value = '';
+            document.getElementById('textInput').focus();
+        }
+
+        // Update buttons
+        function updateButtons() {
+            const pauseBtn = document.querySelector('.btn-secondary');
+            if (currentSpeech && !isPaused) {
+                pauseBtn.textContent = '⏸️ Pause';
+            } else if (isPaused) {
+                pauseBtn.textContent = '▶️ Resume';
+            } else {
+                pauseBtn.textContent = '⏸️ Pause';
+            }
+        }
+
+        // Update slider values
+        function updateSliderValues() {
+            const speedRange = document.getElementById('speedRange');
+            const pitchRange = document.getElementById('pitchRange');
+            const volumeRange = document.getElementById('volumeRange');
+
+            speedRange.oninput = function() {
+                document.getElementById('speedValue').textContent = this.value;
+            };
+
+            pitchRange.oninput = function() {
+                document.getElementById('pitchValue').textContent = this.value;
+            };
+
+            volumeRange.oninput = function() {
+                document.getElementById('volumeValue').textContent = this.value;
+            };
+        }
+
+        // Insert quick text
+        function insertQuickText(text) {
+            document.getElementById('textInput').value = text;
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'Enter':
+                        e.preventDefault();
+                        speakText();
+                        break;
+                    case ' ':
+                        e.preventDefault();
+                        pauseResume();
+                        break;
+                    case 'Escape':
+                        e.preventDefault();
+                        stopSpeech();
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
